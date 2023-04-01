@@ -2,9 +2,10 @@ package mod
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTaskNode_ComputeStatus(t *testing.T) {

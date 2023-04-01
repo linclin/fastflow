@@ -2,9 +2,9 @@ package mod
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/log"
-	"github.com/shiningrush/fastflow/pkg/utils/data"
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/linclin/fastflow/pkg/log"
+	"github.com/linclin/fastflow/pkg/utils/data"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"testing"

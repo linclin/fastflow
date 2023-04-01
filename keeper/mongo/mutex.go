@@ -3,8 +3,8 @@ package mongo
 import (
 	"context"
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/mod"
-	"github.com/shiningrush/fastflow/pkg/utils/data"
+	"github.com/linclin/fastflow/pkg/mod"
+	"github.com/linclin/fastflow/pkg/utils/data"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"time"
@@ -110,7 +110,6 @@ func (m *MongoMutex) spinLock(ctx context.Context, opt *mod.LockOption) error {
 	return nil
 }
 
-//
 func (m *MongoMutex) Unlock(ctx context.Context) error {
 	if m.lockDetail == nil {
 		return fmt.Errorf("the mutex is not locked")

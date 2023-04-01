@@ -2,9 +2,9 @@ package entity
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity/run"
-	"github.com/shiningrush/fastflow/pkg/log"
-	"github.com/shiningrush/fastflow/pkg/utils"
+	"github.com/linclin/fastflow/pkg/entity/run"
+	"github.com/linclin/fastflow/pkg/log"
+	"github.com/linclin/fastflow/pkg/utils"
 	"runtime"
 	"time"
 )

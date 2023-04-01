@@ -2,8 +2,8 @@ package mod
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/log"
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/linclin/fastflow/pkg/log"
 	"sync"
 	"time"
 )

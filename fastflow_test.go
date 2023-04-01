@@ -2,9 +2,9 @@ package fastflow
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/mod"
-	"github.com/shiningrush/fastflow/pkg/utils"
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/linclin/fastflow/pkg/mod"
+	"github.com/linclin/fastflow/pkg/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/yaml.v3"

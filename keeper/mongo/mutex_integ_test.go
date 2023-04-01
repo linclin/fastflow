@@ -1,11 +1,12 @@
+//go:build integration
 // +build integration
 
 package mongo
 
 import (
 	"context"
-	"github.com/shiningrush/fastflow/pkg/mod"
-	"github.com/shiningrush/fastflow/pkg/utils/data"
+	"github.com/linclin/fastflow/pkg/mod"
+	"github.com/linclin/fastflow/pkg/utils/data"
 	"github.com/stretchr/testify/assert"
 	"log"
 	"testing"

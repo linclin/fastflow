@@ -1,8 +1,8 @@
 package mod
 
 import (
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/entity/run"
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/linclin/fastflow/pkg/entity/run"
 	"time"
 )
 

@@ -1,4 +1,4 @@
-module github.com/shiningrush/fastflow
+module github.com/linclin/fastflow
 
 go 1.14
 

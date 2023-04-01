@@ -1,13 +1,14 @@
 package entity
 
 import (
-	"github.com/shiningrush/fastflow/store"
 	"time"
+
+	"github.com/linclin/fastflow/store"
 )
 
 // BaseInfo
 type BaseInfo struct {
-	ID        string `yaml:"id" json:"id" bson:"_id"`
+	ID        string `yaml:"id" json:"id" bson:"_id" gorm:"primarykey"`
 	CreatedAt int64  `yaml:"createdAt" json:"createdAt" bson:"createdAt"`
 	UpdatedAt int64  `yaml:"updatedAt" json:"updatedAt" bson:"updatedAt"`
 }

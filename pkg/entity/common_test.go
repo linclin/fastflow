@@ -1,7 +1,7 @@
 package entity
 
 import (
-	"github.com/shiningrush/fastflow/store"
+	"github.com/linclin/fastflow/store"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )

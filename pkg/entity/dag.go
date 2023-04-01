@@ -6,9 +6,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/shiningrush/fastflow/pkg/log"
-	"github.com/shiningrush/fastflow/pkg/utils"
-	"github.com/shiningrush/fastflow/pkg/utils/value"
+	"github.com/linclin/fastflow/pkg/log"
+	"github.com/linclin/fastflow/pkg/utils"
+	"github.com/linclin/fastflow/pkg/utils/value"
 )
 
 // NewDag new a dag

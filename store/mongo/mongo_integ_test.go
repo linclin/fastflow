@@ -1,11 +1,12 @@
+//go:build integration
 // +build integration
 
 package mongo
 
 import (
 	"fmt"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/mod"
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/linclin/fastflow/pkg/mod"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"

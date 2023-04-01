@@ -2,11 +2,11 @@ package exporter
 
 import (
 	"context"
+	"github.com/linclin/fastflow/pkg/entity"
+	"github.com/linclin/fastflow/pkg/event"
+	"github.com/linclin/fastflow/pkg/mod"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/shiningrush/fastflow/pkg/entity"
-	"github.com/shiningrush/fastflow/pkg/event"
-	"github.com/shiningrush/fastflow/pkg/mod"
 	"github.com/shiningrush/goevent"
 	"net/http"
 	"sync/atomic"
@@ -189,7 +189,9 @@ func (c *LeaderCollector) Collect(ch chan<- prometheus.Metric) {
 
 // HttpHandler used to handle metrics request
 // you can use it like that
-//   http.Handle("/metrics", exporter.HttpHandler)
+//
+//	http.Handle("/metrics", exporter.HttpHandler)
+//
 // because it depend on Keeper, so you should call this function after keeper start
 func HttpHandler() http.Handler {
 	execCollector := &ExecutorCollector{}
