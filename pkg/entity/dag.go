@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -24,9 +25,9 @@ type Dag struct {
 	Name     string    `yaml:"name,omitempty" json:"name,omitempty" bson:"name,omitempty"`
 	Desc     string    `yaml:"desc,omitempty" json:"desc,omitempty" bson:"desc,omitempty"`
 	Cron     string    `yaml:"cron,omitempty" json:"cron,omitempty" bson:"cron,omitempty"`
-	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty"`
-	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty"`
-	Tasks    []Task    `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty"`
+	Vars     DagVars   `yaml:"vars,omitempty" json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:json"`
+	Status   DagStatus `yaml:"status,omitempty" json:"status,omitempty" bson:"status,omitempty" gorm:"type:string"`
+	Tasks    []Task    `yaml:"tasks,omitempty" json:"tasks,omitempty" bson:"tasks,omitempty" gorm:"-"`
 }
 
 // SpecifiedVar
@@ -69,6 +70,21 @@ type DagVar struct {
 	DefaultValue string `yaml:"defaultValue,omitempty" json:"defaultValue,omitempty" bson:"defaultValue,omitempty"`
 }
 
+func (DagVars) GormDataType() string {
+	return "json"
+}
+
+// 实现 sql.Scanner 接口，Scan 将 value 扫描至 Jsonb
+func (d *DagVars) Scan(value interface{}) error {
+	bytesValue, _ := value.([]byte)
+	return json.Unmarshal(bytesValue, d)
+}
+
+// 实现 driver.Valuer 接口，Value 返回 json value
+func (d DagVars) Value() (driver.Value, error) {
+	return json.Marshal(d)
+}
+
 // DagInstanceVar
 type DagInstanceVar struct {
 	Value string `json:"value,omitempty" bson:"value,omitempty"`
@@ -86,13 +102,13 @@ const (
 type DagInstance struct {
 	BaseInfo  `bson:"inline"`
 	DagID     string            `json:"dagId,omitempty" bson:"dagId,omitempty"`
-	Trigger   Trigger           `json:"trigger,omitempty" bson:"trigger,omitempty"`
+	Trigger   Trigger           `json:"trigger,omitempty" bson:"trigger,omitempty" gorm:"type:string"`
 	Worker    string            `json:"worker,omitempty" bson:"worker,omitempty"`
-	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty"`
-	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty"`
-	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty"`
+	Vars      DagInstanceVars   `json:"vars,omitempty" bson:"vars,omitempty" gorm:"type:json"`
+	ShareData *ShareData        `json:"shareData,omitempty" bson:"shareData,omitempty" gorm:"type:json"`
+	Status    DagInstanceStatus `json:"status,omitempty" bson:"status,omitempty" gorm:"type:string"`
 	Reason    string            `json:"reason,omitempty" bson:"reason,omitempty"`
-	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty"`
+	Cmd       *Command          `json:"cmd,omitempty" bson:"cmd,omitempty" gorm:"type:json"`
 }
 
 var (
@@ -108,6 +124,21 @@ type ShareData struct {
 	Save func(data *ShareData) error
 
 	mutex sync.Mutex
+}
+
+func (*ShareData) GormDataType() string {
+	return "json"
+}
+
+// 实现 sql.Scanner 接口，Scan 将 value 扫描至 Jsonb
+func (s *ShareData) Scan(value interface{}) error {
+	bytesValue, _ := value.([]byte)
+	return json.Unmarshal(bytesValue, s)
+}
+
+// 实现 driver.Valuer 接口，Value 返回 json value
+func (s *ShareData) Value() (driver.Value, error) {
+	return json.Marshal(s)
 }
 
 // MarshalBSON used by mongo
@@ -152,6 +183,7 @@ func (d *ShareData) Get(key string) (string, bool) {
 func (d *ShareData) Set(key string, val string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	d.Dict = make(map[string]string)
 	d.Dict[key] = val
 	if d.Save != nil {
 		if err := d.Save(d); err != nil {
@@ -166,6 +198,21 @@ func (d *ShareData) Set(key string, val string) {
 
 // DagInstanceVars
 type DagInstanceVars map[string]DagInstanceVar
+
+func (DagInstanceVars) GormDataType() string {
+	return "json"
+}
+
+// 实现 sql.Scanner 接口，Scan 将 value 扫描至 Jsonb
+func (d *DagInstanceVars) Scan(value interface{}) error {
+	bytesValue, _ := value.([]byte)
+	return json.Unmarshal(bytesValue, d)
+}
+
+// 实现 driver.Valuer 接口，Value 返回 json value
+func (d DagInstanceVars) Value() (driver.Value, error) {
+	return json.Marshal(d)
+}
 
 // Cancel a task, it is just set a command, command will execute by Parser
 func (dagIns *DagInstance) Cancel(taskInsIds []string) error {
@@ -284,6 +331,21 @@ func (vars DagInstanceVars) Render(p map[string]interface{}) (map[string]interfa
 type Command struct {
 	Name             CommandName
 	TargetTaskInsIDs []string
+}
+
+func (Command) GormDataType() string {
+	return "json"
+}
+
+// 实现 sql.Scanner 接口，Scan 将 value 扫描至 Jsonb
+func (c *Command) Scan(value interface{}) error {
+	bytesValue, _ := value.([]byte)
+	return json.Unmarshal(bytesValue, c)
+}
+
+// 实现 driver.Valuer 接口，Value 返回 json value
+func (c Command) Value() (driver.Value, error) {
+	return json.Marshal(c)
 }
 
 // CommandName

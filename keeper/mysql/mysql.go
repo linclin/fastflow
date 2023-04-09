@@ -51,10 +51,10 @@ type KeeperOption struct {
 }
 
 type Worker struct {
-	WorkerKey   string `gorm:"column:workerKey;unique;comment:workerKey"`
-	WorkerType  string `gorm:"column:WorkerType;comment:WorkerType"`
-	UpdatedAt   time.Time
-	HeartBeatAt time.Time
+	WorkerKey   string    `gorm:"column:worker_key;unique;comment:WorkerKey"`
+	WorkerType  string    `gorm:"column:worker_type;comment:WorkerType"`
+	UpdatedAt   time.Time `gorm:"column:updated_at;comment:UpdatedAt"`
+	HeartbeatAt time.Time `gorm:"column:heartbeat_at;comment:HeartBeatAt"`
 }
 
 func (Worker) TableName() string {
@@ -155,7 +155,7 @@ func (k *Keeper) IsLeader() bool {
 func (k *Keeper) AliveNodes() ([]string, error) {
 
 	var ret []Worker
-	err := k.db.Find(&ret).Error
+	err := k.db.Table(k.opt.Prefix + "_worker").Find(&ret).Error
 	if err != nil {
 		return []string{}, err
 	}
@@ -169,7 +169,7 @@ func (k *Keeper) AliveNodes() ([]string, error) {
 // IsAlive check if a worker still alive
 func (k *Keeper) IsAlive(workerKey string) (bool, error) {
 	var worker Worker
-	k.db.Where("workerKey = ?", workerKey).First(&worker)
+	k.db.Table(k.opt.Prefix+"_worker").Where("worker_key = ?", workerKey).First(&worker)
 	if worker.UpdatedAt.After(time.Now().Add(-1 * k.opt.UnhealthyTime)) {
 		return true, nil
 	}
@@ -190,7 +190,7 @@ func (k *Keeper) WorkerNumber() int {
 func (k *Keeper) Close() {
 	close(k.closeCh)
 	k.wg.Wait()
-	k.db.Close()
+	k.db.Table(k.opt.Prefix+"_worker").Where("worker_key = ?", k.opt.Key).Delete(&Worker{})
 }
 
 // this function is just for testing
@@ -234,7 +234,7 @@ func (k *Keeper) elect() {
 
 func (k *Keeper) campaign() error {
 	var ret []Worker
-	err := k.db.Find(&ret).Error
+	err := k.db.Table(k.opt.Prefix + "_worker").Find(&ret).Error
 	if err != nil {
 		return err
 	}
@@ -248,9 +248,9 @@ func (k *Keeper) campaign() error {
 				WorkerKey:   k.opt.Key,
 				WorkerType:  LeaderKey,
 				UpdatedAt:   time.Now(),
-				HeartBeatAt: time.Now(),
+				HeartbeatAt: time.Now(),
 			}
-			err := k.db.Where("workerKey = ?", k.opt.Key).Updates(&leader).Error
+			err := k.db.Table(k.opt.Prefix+"_worker").Where("worker_key = ?", k.opt.Key).Updates(&leader).Error
 			if err != nil {
 				return fmt.Errorf("update Leader failed: %w", err)
 			}
@@ -262,9 +262,9 @@ func (k *Keeper) campaign() error {
 			WorkerKey:   k.opt.Key,
 			WorkerType:  LeaderKey,
 			UpdatedAt:   time.Now(),
-			HeartBeatAt: time.Now(),
+			HeartbeatAt: time.Now(),
 		}
-		err := k.db.Create(&leader).Error
+		err := k.db.Table(k.opt.Prefix + "_worker").Create(&leader).Error
 		if err != nil {
 			log.Errorf("insert campaign rec failed: %s", err)
 			return fmt.Errorf("insert failed: %w", err)
@@ -279,9 +279,9 @@ func (k *Keeper) continueLeader() error {
 		WorkerKey:   k.opt.Key,
 		WorkerType:  LeaderKey,
 		UpdatedAt:   time.Now(),
-		HeartBeatAt: time.Now(),
+		HeartbeatAt: time.Now(),
 	}
-	err := k.db.Where("workerKey = ?", k.opt.Key).Updates(&leader).Error
+	err := k.db.Table(k.opt.Prefix+"_worker").Where("worker_key = ?", k.opt.Key).Updates(&leader).Error
 	if err != nil {
 		return fmt.Errorf("update Leader failed: %w", err)
 	}
@@ -309,7 +309,7 @@ func (k *Keeper) goHeartBeat() {
 }
 
 func (k *Keeper) heartBeat() error {
-	err := k.db.Model(&Worker{}).Where("workerKey = ?", k.opt.Key).Update("updatedAt", time.Now()).Error
+	err := k.db.Table(k.opt.Prefix+"_worker").Model(&Worker{}).Where("worker_key = ?", k.opt.Key).Update("updated_at", time.Now()).Error
 	if err != nil {
 		return fmt.Errorf("update Leader failed: %w", err)
 	}

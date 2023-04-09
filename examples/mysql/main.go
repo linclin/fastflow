@@ -13,8 +13,8 @@ import (
 	"github.com/linclin/fastflow/pkg/entity/run"
 	"github.com/linclin/fastflow/pkg/exporter"
 	"github.com/linclin/fastflow/pkg/mod"
-	"github.com/linclin/fastflow/pkg/utils/data"
 	mysqlStore "github.com/linclin/fastflow/store/mysql"
+	"gorm.io/gorm"
 )
 
 type ActionParam struct {
@@ -31,7 +31,7 @@ func (a *ActionA) Name() string {
 }
 func (a *ActionA) RunBefore(ctx run.ExecuteContext, params interface{}) error {
 	input := params.(*ActionParam)
-	log.Println(fmt.Sprintf("%s run before, p.Name: %s, p.Desc: %s", a.Name(), input.Name, input.Desc))
+	fmt.Println(fmt.Sprintf("%s %s run before, p.Name: %s, p.Desc: %s", a.Name(), a.code, input.Name, input.Desc))
 	time.Sleep(time.Second)
 	if a.code != "B" && a.code != "C" {
 		ctx.ShareData().Set(fmt.Sprintf("%s-key", a.code), fmt.Sprintf("%s value", a.code))
@@ -86,10 +86,12 @@ func ensureDagCreated() error {
 		},
 	}
 	oldDag, err := mod.GetStore().GetDag(dag.ID)
-	if errors.Is(err, data.ErrDataNotFound) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if err := mod.GetStore().CreateDag(dag); err != nil {
 			return err
 		}
+	} else {
+		return err
 	}
 	if oldDag != nil {
 		if err := mod.GetStore().UpdateDag(dag); err != nil {
@@ -110,16 +112,15 @@ func main() {
 	// init keeper
 	keeper := mysqlKeeper.NewKeeper(&mysqlKeeper.KeeperOption{
 		Key:     "worker-1",
-		ConnStr: "mysql://root:mysql@127.0.0.1:3306/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
+		ConnStr: "root:mysql@tcp(127.0.0.1:3306)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
 		Prefix:  "test",
 	})
 	if err := keeper.Init(); err != nil {
 		log.Fatal(fmt.Errorf("init keeper failed: %w", err))
 	}
-
 	// init store
 	st := mysqlStore.NewStore(&mysqlStore.StoreOption{
-		ConnStr: "mysql://root:mysql@127.0.0.1:27017/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
+		ConnStr: "root:mysql@tcp(127.0.0.1:3306)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
 		Prefix:  "test",
 	})
 	if err := st.Init(); err != nil {
@@ -138,7 +139,7 @@ func main() {
 
 	// create a dag as template
 	if err := ensureDagCreated(); err != nil {
-		log.Fatalf(err.Error())
+		panic(err.Error())
 	}
 	// run dag interval
 	go runInstance()
@@ -156,26 +157,15 @@ func runInstance() {
 	if err != nil {
 		panic(err)
 	}
-
-	count := uint64(0)
-	for {
-		runVar := map[string]string{
-			"var": "run-var",
-		}
-		if count%2 == 0 {
-			runVar = nil
-		}
-		dagIns, err := dag.Run(entity.TriggerManually, runVar)
-		if err != nil {
-			panic(err)
-		}
-
-		err = mod.GetStore().CreateDagIns(dagIns)
-		if err != nil {
-			panic(err)
-		}
-
-		count++
-		time.Sleep(1 * time.Second)
+	runVar := map[string]string{
+		"var": "run-var",
+	}
+	dagIns, err := dag.Run(entity.TriggerManually, runVar)
+	if err != nil {
+		panic(err)
+	}
+	err = mod.GetStore().CreateDagIns(dagIns)
+	if err != nil {
+		panic(err)
 	}
 }

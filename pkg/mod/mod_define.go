@@ -119,8 +119,8 @@ type Store interface {
 	GetDagInstance(dagInsId string) (*entity.DagInstance, error)
 	ListDagInstance(input *ListDagInstanceInput) ([]*entity.DagInstance, error)
 	ListTaskInstance(input *ListTaskInstanceInput) ([]*entity.TaskInstance, error)
-	//Marshal(obj interface{}) ([]byte, error)
-	//Unmarshal(bytes []byte, ptr interface{}) error
+	Marshal(obj interface{}) ([]byte, error)
+	Unmarshal(bytes []byte, ptr interface{}) error
 }
 
 // ListDagInput

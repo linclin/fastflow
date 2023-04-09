@@ -2,12 +2,14 @@ package mongo
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/linclin/fastflow/pkg/entity"
 	"github.com/linclin/fastflow/pkg/event"
 	"github.com/linclin/fastflow/pkg/mod"
 	"github.com/shiningrush/goevent"
+	"go.mongodb.org/mongo-driver/bson"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	gormlogger "gorm.io/gorm/logger"
@@ -73,16 +75,23 @@ func (s *Store) Close() {
 
 // CreateDag
 func (s *Store) CreateDag(dag *entity.Dag) error {
-	// check task's connection
+	fmt.Println("CreateDag ", dag)
 	_, err := mod.BuildRootNode(mod.MapTasksToGetter(dag.Tasks))
 	if err != nil {
 		return err
 	}
 	baseInfo := dag.GetBaseInfo()
 	baseInfo.Initial()
-	err = s.db.Create(&dag).Error
+	err = s.db.Table(s.opt.Prefix + "_dag").Create(&dag).Error
 	if err != nil {
 		return fmt.Errorf("insert Dag failed: %w", err)
+	}
+	for _, task := range dag.Tasks {
+		task.DagID = dag.ID
+		err = s.db.Table(s.opt.Prefix + "_task").Create(&task).Error
+		if err != nil {
+			return fmt.Errorf("insert Task failed: %w", err)
+		}
 	}
 	return nil
 }
@@ -91,7 +100,7 @@ func (s *Store) CreateDag(dag *entity.Dag) error {
 func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
 	baseInfo := dagIns.GetBaseInfo()
 	baseInfo.Initial()
-	err := s.db.Create(&dagIns).Error
+	err := s.db.Table(s.opt.Prefix + "_dag_instance").Create(&dagIns).Error
 	if err != nil {
 		return fmt.Errorf("insert DagInstance failed: %w", err)
 	}
@@ -102,7 +111,7 @@ func (s *Store) CreateDagIns(dagIns *entity.DagInstance) error {
 func (s *Store) CreateTaskIns(taskIns *entity.TaskInstance) error {
 	baseInfo := taskIns.GetBaseInfo()
 	baseInfo.Initial()
-	err := s.db.Create(&taskIns).Error
+	err := s.db.Table(s.opt.Prefix + "_task_instance").Create(&taskIns).Error
 	if err != nil {
 		return fmt.Errorf("insert TaskInstance failed: %w", err)
 	}
@@ -112,8 +121,9 @@ func (s *Store) CreateTaskIns(taskIns *entity.TaskInstance) error {
 // BatchCreatTaskIns
 func (s *Store) BatchCreatTaskIns(taskIns []*entity.TaskInstance) error {
 	for i := range taskIns {
-		taskIns[i].Initial()
-		err := s.db.Create(&taskIns).Error
+		baseInfo := taskIns[i].GetBaseInfo()
+		baseInfo.Initial()
+		err := s.db.Table(s.opt.Prefix + "_task_instance").Create(&taskIns[i]).Error
 		if err != nil {
 			return fmt.Errorf("insert TaskInstance failed: %w", err)
 		}
@@ -127,7 +137,7 @@ func (s *Store) PatchTaskIns(taskIns *entity.TaskInstance) error {
 		return fmt.Errorf("id cannot be empty")
 	}
 	taskIns.Update()
-	err := s.db.Where("taskId = ?", taskIns.ID).Updates(&taskIns).Error
+	err := s.db.Table(s.opt.Prefix+"_task_instance").Where("id = ?", taskIns.ID).Updates(&taskIns).Error
 	if err != nil {
 		return fmt.Errorf("patch TaskInstance failed: %w", err)
 	}
@@ -137,7 +147,7 @@ func (s *Store) PatchTaskIns(taskIns *entity.TaskInstance) error {
 // PatchDagIns
 func (s *Store) PatchDagIns(dagIns *entity.DagInstance, mustsPatchFields ...string) error {
 	dagIns.Update()
-	err := s.db.Where("dagId = ?", dagIns.ID).Updates(&dagIns).Error
+	err := s.db.Table(s.opt.Prefix+"_dag_instance").Where("id = ?", dagIns.ID).Updates(&dagIns).Error
 	if err != nil {
 		return fmt.Errorf("patch DagInstance failed: %w", err)
 	}
@@ -156,7 +166,7 @@ func (s *Store) UpdateDag(dag *entity.Dag) error {
 		return err
 	}
 	dag.Update()
-	err = s.db.Where("id = ?", dag.ID).Updates(&dag).Error
+	err = s.db.Table(s.opt.Prefix+"_dag").Where("id = ?", dag.ID).Updates(&dag).Error
 	if err != nil {
 		return fmt.Errorf("patch Dag failed: %w", err)
 	}
@@ -166,7 +176,7 @@ func (s *Store) UpdateDag(dag *entity.Dag) error {
 // UpdateDagIns
 func (s *Store) UpdateDagIns(dagIns *entity.DagInstance) error {
 	dagIns.Update()
-	err := s.db.Where("dagId = ?", dagIns.ID).Updates(&dagIns).Error
+	err := s.db.Table(s.opt.Prefix+"_dag_instance").Where("id = ?", dagIns.ID).Updates(&dagIns).Error
 	if err != nil {
 		return fmt.Errorf("patch DagInstance failed: %w", err)
 	}
@@ -177,7 +187,7 @@ func (s *Store) UpdateDagIns(dagIns *entity.DagInstance) error {
 // UpdateTaskIns
 func (s *Store) UpdateTaskIns(taskIns *entity.TaskInstance) error {
 	taskIns.Update()
-	err := s.db.Where("taskId = ?", taskIns.ID).Updates(&taskIns).Error
+	err := s.db.Table(s.opt.Prefix+"_task_instance").Where("id = ?", taskIns.ID).Updates(&taskIns).Error
 	if err != nil {
 		return fmt.Errorf("patch DagInstance failed: %w", err)
 	}
@@ -188,7 +198,7 @@ func (s *Store) UpdateTaskIns(taskIns *entity.TaskInstance) error {
 func (s *Store) BatchUpdateDagIns(dagIns []*entity.DagInstance) error {
 	for i := range dagIns {
 		dagIns[i].Update()
-		err := s.db.Where("dagId = ?", dagIns[i].ID).Updates(&dagIns[i]).Error
+		err := s.db.Table(s.opt.Prefix+"_dag_instance").Where("id = ?", dagIns[i].ID).Updates(&dagIns[i]).Error
 		if err != nil {
 			return fmt.Errorf("patch DagInstance failed: %w", err)
 		}
@@ -200,7 +210,7 @@ func (s *Store) BatchUpdateDagIns(dagIns []*entity.DagInstance) error {
 func (s *Store) BatchUpdateTaskIns(taskIns []*entity.TaskInstance) error {
 	for i := range taskIns {
 		taskIns[i].Update()
-		err := s.db.Where("taskId = ?", taskIns[i].ID).Updates(&taskIns[i]).Error
+		err := s.db.Table(s.opt.Prefix+"_task_instance").Where("id = ?", taskIns[i].ID).Updates(&taskIns[i]).Error
 		if err != nil {
 			return fmt.Errorf("patch TaskInstance failed: %w", err)
 		}
@@ -211,7 +221,7 @@ func (s *Store) BatchUpdateTaskIns(taskIns []*entity.TaskInstance) error {
 // GetTaskIns
 func (s *Store) GetTaskIns(taskInsId string) (*entity.TaskInstance, error) {
 	ret := new(entity.TaskInstance)
-	err := s.db.Where("taskId = ?", taskInsId).First(&ret).Error
+	err := s.db.Table(s.opt.Prefix+"_task_instance").Where("id = ?", taskInsId).First(&ret).Error
 	if err != nil {
 		return nil, err
 	}
@@ -220,18 +230,24 @@ func (s *Store) GetTaskIns(taskInsId string) (*entity.TaskInstance, error) {
 
 // GetDag
 func (s *Store) GetDag(dagId string) (*entity.Dag, error) {
-	ret := new(entity.Dag)
-	err := s.db.Where("id = ?", dagId).First(&ret).Error
+	dag := new(entity.Dag)
+	err := s.db.Table(s.opt.Prefix+"_dag").Where("id = ?", dagId).First(&dag).Error
 	if err != nil {
 		return nil, err
 	}
-	return ret, nil
+	task := []entity.Task{}
+	err = s.db.Table(s.opt.Prefix+"_task").Where("dag_id = ?", dagId).Find(&task).Error
+	if err != nil {
+		return nil, err
+	}
+	dag.Tasks = task
+	return dag, nil
 }
 
 // GetDagInstance
 func (s *Store) GetDagInstance(dagInsId string) (*entity.DagInstance, error) {
 	ret := new(entity.DagInstance)
-	err := s.db.Where("dagId = ?", dagInsId).First(&ret).Error
+	err := s.db.Table(s.opt.Prefix+"_dag_instance").Where("id = ?", dagInsId).First(&ret).Error
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +257,7 @@ func (s *Store) GetDagInstance(dagInsId string) (*entity.DagInstance, error) {
 // ListDag
 func (s *Store) ListDag(input *mod.ListDagInput) ([]*entity.Dag, error) {
 	var ret []*entity.Dag
-	err := s.db.Find(&ret).Error
+	err := s.db.Table(s.opt.Prefix + "_dag").Find(&ret).Error
 	if err != nil {
 		return nil, err
 	}
@@ -250,29 +266,29 @@ func (s *Store) ListDag(input *mod.ListDagInput) ([]*entity.Dag, error) {
 
 // ListDagInstance
 func (s *Store) ListDagInstance(input *mod.ListDagInstanceInput) ([]*entity.DagInstance, error) {
-	filterExp := "1=1 "
+	filterExp := []string{}
 	filterArgs := []interface{}{}
 	if len(input.Status) > 0 {
-		filterExp = "AND status in (?) "
+		filterExp = append(filterExp, "status in (?) ")
 		filterArgs = append(filterArgs, input.Status)
 	}
 	if input.Worker != "" {
-		filterExp = "AND worker= ? "
-		filterArgs = append(filterArgs, input.Status)
+		filterExp = append(filterExp, "worker = ? ")
+		filterArgs = append(filterArgs, input.Worker)
 	}
 	if input.UpdatedEnd > 0 {
-		filterExp = "AND updatedAt<= ? "
+		filterExp = append(filterExp, "updated_at <= ? ")
 		filterArgs = append(filterArgs, input.UpdatedEnd)
 	}
 	if input.HasCmd {
-		filterExp = "AND cmd IS NOT NULL "
+		filterExp = append(filterExp, "cmd IS NOT NULL ")
 	}
 	limit := 10
 	if input.Limit > 0 {
 		limit = int(input.Limit)
 	}
 	var ret []*entity.DagInstance
-	err := s.db.Where(filterExp, filterArgs...).Limit(limit).Order("updatedAt DESC").Find(&ret).Error
+	err := s.db.Table(s.opt.Prefix+"_dag_instance").Where(strings.Join(filterExp, " AND "), filterArgs...).Limit(limit).Order("updated_at DESC").Find(&ret).Error
 	if err != nil {
 		return nil, err
 	}
@@ -281,26 +297,26 @@ func (s *Store) ListDagInstance(input *mod.ListDagInstanceInput) ([]*entity.DagI
 
 // ListTaskInstance
 func (s *Store) ListTaskInstance(input *mod.ListTaskInstanceInput) ([]*entity.TaskInstance, error) {
-	filterExp := "1=1 "
+	filterExp := []string{}
 	filterArgs := []interface{}{}
 	if len(input.IDs) > 0 {
-		filterExp = "AND id in (?) "
+		filterExp = append(filterExp, "id in (?) ")
 		filterArgs = append(filterArgs, input.IDs)
 	}
 	if len(input.Status) > 0 {
-		filterExp = "AND status in (?) "
+		filterExp = append(filterExp, "status in (?) ")
 		filterArgs = append(filterArgs, input.Status)
 	}
 	if input.Expired {
-		filterExp = "AND updatedAt<=?  "
+		filterExp = append(filterExp, "updated_at <= ? ")
 		filterArgs = append(filterArgs, time.Now().Unix()-5)
 	}
 	if input.DagInsID != "" {
-		filterExp = "AND dagInsId =? "
+		filterExp = append(filterExp, "dag_ins_id =? ")
 		filterArgs = append(filterArgs, input.DagInsID)
 	}
 	var ret []*entity.TaskInstance
-	err := s.db.Where(filterExp, filterArgs...).Order("updatedAt DESC").Find(&ret).Error
+	err := s.db.Table(s.opt.Prefix+"_task_instance").Where(strings.Join(filterExp, " AND "), filterArgs...).Order("updated_at DESC").Find(&ret).Error
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +325,7 @@ func (s *Store) ListTaskInstance(input *mod.ListTaskInstanceInput) ([]*entity.Ta
 
 // BatchDeleteDag
 func (s *Store) BatchDeleteDag(ids []string) error {
-	err := s.db.Delete(&entity.Dag{}, ids).Error
+	err := s.db.Table(s.opt.Prefix+"_dag").Delete(&entity.Dag{}, ids).Error
 	if err != nil {
 		return err
 	}
@@ -318,7 +334,7 @@ func (s *Store) BatchDeleteDag(ids []string) error {
 
 // BatchDeleteDagIns
 func (s *Store) BatchDeleteDagIns(ids []string) error {
-	err := s.db.Delete(&entity.DagInstance{}, ids).Error
+	err := s.db.Table(s.opt.Prefix+"_dag_instance").Delete(&entity.DagInstance{}, ids).Error
 	if err != nil {
 		return err
 	}
@@ -327,9 +343,19 @@ func (s *Store) BatchDeleteDagIns(ids []string) error {
 
 // BatchDeleteTaskIns
 func (s *Store) BatchDeleteTaskIns(ids []string) error {
-	err := s.db.Delete(&entity.TaskInstance{}, ids).Error
+	err := s.db.Table(s.opt.Prefix+"_task_instance").Delete(&entity.TaskInstance{}, ids).Error
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+// Marshal
+func (s *Store) Marshal(obj interface{}) ([]byte, error) {
+	return bson.Marshal(obj)
+}
+
+// Unmarshal
+func (s *Store) Unmarshal(bytes []byte, ptr interface{}) error {
+	return bson.Unmarshal(bytes, ptr)
 }
