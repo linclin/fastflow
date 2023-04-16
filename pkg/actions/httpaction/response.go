@@ -1,4 +1,4 @@
-package http
+package httpaction
 
 import (
 	"bytes"
@@ -33,7 +33,6 @@ func ParseHTTPResponse(response *http.Response, p *HTTPParams) (*HTTPResponse, e
 		Body:            body,
 		Raw:             respBytes,
 	}
-
 	switch p.getResponseHandler() {
 	case ResponseHandlerNone:
 		return resp, nil

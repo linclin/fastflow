@@ -9,6 +9,7 @@ import (
 
 	"github.com/linclin/fastflow"
 	mysqlKeeper "github.com/linclin/fastflow/keeper/mysql"
+	"github.com/linclin/fastflow/pkg/actions/httpaction"
 	"github.com/linclin/fastflow/pkg/entity"
 	"github.com/linclin/fastflow/pkg/entity/run"
 	"github.com/linclin/fastflow/pkg/exporter"
@@ -67,10 +68,11 @@ func ensureDagCreated() error {
 		},
 		Status: entity.DagStatusNormal,
 		Tasks: []entity.Task{
-			{ID: "task1", ActionName: "Action-A", Params: map[string]interface{}{
-				"Name": "task-p1",
-				"Desc": "{{var}}",
-			}, TimeoutSecs: 5},
+			{ID: "task1", ActionName: "http", Params: map[string]interface{}{
+				"method":          "GET",
+				"url":             "http://127.0.0.1:9090/metrics",
+				"responseHandler": httpaction.ResponseHandlerNone,
+			}, TimeoutSecs: 60},
 			{ID: "task2", ActionName: "Action-B", DependOn: []string{"task1"}, Params: map[string]interface{}{
 				"Name": "task-p1",
 				"Desc": "{{var}}",
@@ -108,6 +110,7 @@ func main() {
 		&ActionA{code: "B"},
 		&ActionA{code: "C"},
 		&ActionA{code: "D"},
+		&httpaction.HTTP{},
 	})
 	// init keeper
 	keeper := mysqlKeeper.NewKeeper(&mysqlKeeper.KeeperOption{
@@ -133,6 +136,7 @@ func main() {
 		Store:             st,
 		ParserWorkersCnt:  10,
 		ExecutorWorkerCnt: 50,
+		ExecutorTimeout:   600,
 	}); err != nil {
 		panic(fmt.Sprintf("init fastflow failed: %s", err))
 	}
