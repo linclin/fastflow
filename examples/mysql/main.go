@@ -110,12 +110,11 @@ func main() {
 		&ActionA{code: "B"},
 		&ActionA{code: "C"},
 		&ActionA{code: "D"},
-		&httpaction.HTTP{},
 	})
 	// init keeper
 	keeper := mysqlKeeper.NewKeeper(&mysqlKeeper.KeeperOption{
 		Key:     "worker-1",
-		ConnStr: "root:mysql@tcp(127.0.0.1:3306)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
+		ConnStr: "root:mysql@tcp(172.31.116.212:32427)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
 		Prefix:  "test",
 	})
 	if err := keeper.Init(); err != nil {
@@ -123,7 +122,7 @@ func main() {
 	}
 	// init store
 	st := mysqlStore.NewStore(&mysqlStore.StoreOption{
-		ConnStr: "root:mysql@tcp(127.0.0.1:3306)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
+		ConnStr: "root:mysql@tcp(172.31.116.212:32427)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
 		Prefix:  "test",
 	})
 	if err := st.Init(); err != nil {
