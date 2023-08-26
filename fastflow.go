@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/linclin/fastflow/pkg/actions"
-	"github.com/linclin/fastflow/pkg/actions/httpaction"
 	"github.com/linclin/fastflow/pkg/entity"
 	"github.com/linclin/fastflow/pkg/entity/run"
 	"github.com/linclin/fastflow/pkg/event"
@@ -91,7 +90,8 @@ func Init(opt *InitialOption) error {
 
 	RegisterAction([]run.Action{
 		&actions.Waiting{},
-		&httpaction.HTTP{},
+		&actions.SSH{},
+		&actions.HTTP{},
 	})
 
 	if opt.ReadDagFromDir != "" {

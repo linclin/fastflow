@@ -9,7 +9,6 @@ import (
 
 	"github.com/linclin/fastflow"
 	mysqlKeeper "github.com/linclin/fastflow/keeper/mysql"
-	"github.com/linclin/fastflow/pkg/actions/httpaction"
 	"github.com/linclin/fastflow/pkg/entity"
 	"github.com/linclin/fastflow/pkg/entity/run"
 	"github.com/linclin/fastflow/pkg/exporter"
@@ -69,14 +68,16 @@ func ensureDagCreated() error {
 		Status: entity.DagStatusNormal,
 		Tasks: []entity.Task{
 			{ID: "task1", ActionName: "http", Params: map[string]interface{}{
-				"method":          "GET",
-				"url":             "http://127.0.0.1:9090/metrics",
-				"responseHandler": httpaction.ResponseHandlerNone,
+				"method": "GET",
+				"url":    "http://127.0.0.1:9090/metrics",
 			}, TimeoutSecs: 60},
-			{ID: "task2", ActionName: "Action-B", DependOn: []string{"task1"}, Params: map[string]interface{}{
-				"Name": "task-p1",
-				"Desc": "{{var}}",
-			}},
+			{ID: "task2", ActionName: "ssh", DependOn: []string{"task1"}, Params: map[string]interface{}{
+				"user":    "lc",
+				"ip":      "172.17.115.244",
+				"key":     "./id_rsa",
+				"cmd":     "touch 111",
+				"timeout": 5,
+			}, TimeoutSecs: 10},
 			{ID: "task3", ActionName: "Action-C", DependOn: []string{"task1"}, Params: map[string]interface{}{
 				"Name": "task-p1",
 				"Desc": "{{var}}",
@@ -114,7 +115,7 @@ func main() {
 	// init keeper
 	keeper := mysqlKeeper.NewKeeper(&mysqlKeeper.KeeperOption{
 		Key:     "worker-1",
-		ConnStr: "root:mysql@tcp(172.31.116.212:32427)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
+		ConnStr: "root:mysql@tcp(172.17.115.244:3306)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
 		Prefix:  "test",
 	})
 	if err := keeper.Init(); err != nil {
@@ -122,7 +123,7 @@ func main() {
 	}
 	// init store
 	st := mysqlStore.NewStore(&mysqlStore.StoreOption{
-		ConnStr: "root:mysql@tcp(172.31.116.212:32427)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
+		ConnStr: "root:mysql@tcp(172.17.115.244:3306)/fastflow?charset=utf8mb4&parseTime=True&loc=Local&timeout=10000ms",
 		Prefix:  "test",
 	})
 	if err := st.Init(); err != nil {
