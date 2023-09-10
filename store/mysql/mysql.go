@@ -170,6 +170,45 @@ func (s *Store) UpdateDag(dag *entity.Dag) error {
 	if err != nil {
 		return fmt.Errorf("patch Dag failed: %w", err)
 	}
+	oldTasks := []entity.Task{}
+	err = s.db.Table(s.opt.Prefix+"_task").Where("dag_id = ?", dag.ID).Find(&oldTasks).Error
+	if err != nil {
+		return fmt.Errorf("get task failed: %w", err)
+	}
+	for _, task := range dag.Tasks {
+		task.DagID = dag.ID
+		exits := false
+		for _, oldTask := range oldTasks {
+			if task.ID == oldTask.ID {
+				exits = true
+			}
+		}
+		if exits {
+			err = s.db.Table(s.opt.Prefix+"_task").Where("id = ?", task.ID).Updates(&task).Error
+			if err != nil {
+				return fmt.Errorf("update Task failed: %w", err)
+			}
+		} else {
+			err = s.db.Table(s.opt.Prefix + "_task").Create(&task).Error
+			if err != nil {
+				return fmt.Errorf("insert Task failed: %w", err)
+			}
+		}
+	}
+	for _, oldTask := range oldTasks {
+		exits := false
+		for _, task := range dag.Tasks {
+			if task.ID == oldTask.ID {
+				exits = true
+			}
+		}
+		if !exits {
+			err = s.db.Table(s.opt.Prefix + "_task").Unscoped().Delete(&oldTask).Error
+			if err != nil {
+				return fmt.Errorf("delete Task failed: %w", err)
+			}
+		}
+	}
 	return nil
 }
 

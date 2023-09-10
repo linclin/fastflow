@@ -92,6 +92,9 @@ func Init(opt *InitialOption) error {
 		&actions.Waiting{},
 		&actions.SSH{},
 		&actions.HTTP{},
+		&actions.GOGIT{},
+		&actions.BUILDKIT{},
+		&actions.KANIKO{},
 	})
 
 	if opt.ReadDagFromDir != "" {

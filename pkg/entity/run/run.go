@@ -3,6 +3,7 @@ package run
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/linclin/fastflow/pkg/utils"
 )
@@ -80,6 +81,7 @@ func (e *DefExecuteContext) ShareData() ShareDataOperator {
 
 // Trace print msg to the TaskInstance.Traces.
 func (e *DefExecuteContext) Trace(msg string, opt ...TraceOp) {
+	log.Println(msg)
 	e.trace(msg, opt...)
 }
 

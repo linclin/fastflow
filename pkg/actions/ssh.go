@@ -58,7 +58,7 @@ func (s *SSH) Run(ctx run.ExecuteContext, params interface{}) (err error) {
 	if sshPort == 0 {
 		sshPort = 22
 	}
-	sshAuth, err := goph.Key(p.Key, "")
+	sshAuth, err := goph.Key("./storage/ssh-key/"+p.Key, "")
 	if err != nil {
 		ctx.Trace("[Action ssh]sshAuth " + err.Error())
 		return err

@@ -10,88 +10,49 @@ import (
 	"github.com/linclin/fastflow"
 	mysqlKeeper "github.com/linclin/fastflow/keeper/mysql"
 	"github.com/linclin/fastflow/pkg/entity"
-	"github.com/linclin/fastflow/pkg/entity/run"
 	"github.com/linclin/fastflow/pkg/exporter"
 	"github.com/linclin/fastflow/pkg/mod"
 	mysqlStore "github.com/linclin/fastflow/store/mysql"
 	"gorm.io/gorm"
 )
 
-type ActionParam struct {
-	Name string
-	Desc string
-}
-
-type ActionA struct {
-	code string
-}
-
-func (a *ActionA) Name() string {
-	return fmt.Sprintf("Action-%s", a.code)
-}
-func (a *ActionA) RunBefore(ctx run.ExecuteContext, params interface{}) error {
-	input := params.(*ActionParam)
-	fmt.Println(fmt.Sprintf("%s %s run before, p.Name: %s, p.Desc: %s", a.Name(), a.code, input.Name, input.Desc))
-	time.Sleep(time.Second)
-	if a.code != "B" && a.code != "C" {
-		ctx.ShareData().Set(fmt.Sprintf("%s-key", a.code), fmt.Sprintf("%s value", a.code))
-	}
-	return nil
-}
-func (a *ActionA) Run(ctx run.ExecuteContext, params interface{}) error {
-	input := params.(*ActionParam)
-	log.Println(fmt.Sprintf("%s run, p.Name: %s, p.Desc: %s", a.Name(), input.Name, input.Desc))
-	ctx.Trace("run start", run.TraceOpPersistAfterAction)
-	time.Sleep(2 * time.Second)
-	ctx.Trace("run end")
-	return nil
-}
-func (a *ActionA) RunAfter(ctx run.ExecuteContext, params interface{}) error {
-	input := params.(*ActionParam)
-	log.Println(fmt.Sprintf("%s run after, p.Name: %s, p.Desc: %s", a.Name(), input.Name, input.Desc))
-	time.Sleep(time.Second)
-	return nil
-}
-func (a *ActionA) ParameterNew() interface{} {
-	return &ActionParam{}
-}
-
 func ensureDagCreated() error {
 	dag := &entity.Dag{
 		BaseInfo: entity.BaseInfo{
-			ID: "test-dag",
+			ID: "ci-kaniko",
 		},
-		Name: "test",
+		Name: "ci-kaniko",
 		Vars: entity.DagVars{
 			"var": {DefaultValue: "default-var"},
 		},
 		Status: entity.DagStatusNormal,
 		Tasks: []entity.Task{
-			{ID: "task1", ActionName: "Action-A", Params: map[string]interface{}{
-				"Name": "task-p1",
-				"Desc": "{{var}}",
+			{ID: "kaniko-task1", ActionName: "http", Params: map[string]interface{}{
+				"method": "GET",
+				"url":    "http://127.0.0.1:9090/metrics",
 			}, TimeoutSecs: 60},
-			{ID: "task2", ActionName: "Action-B", DependOn: []string{"task1"}, Params: map[string]interface{}{
-				"Name": "task-p2",
-				"Desc": "{{var}}",
-			}},
-			{ID: "task3", ActionName: "Action-C", DependOn: []string{"task1"}, Params: map[string]interface{}{
-				"Name": "task-p1",
-				"Desc": "{{var}}",
-			}},
-			{ID: "task4", ActionName: "Action-D", DependOn: []string{"task2", "task3"}, Params: map[string]interface{}{
-				"Name": "task-p1",
-				"Desc": "{{var}}",
-			}},
+			{ID: "kaniko-task4", ActionName: "kaniko", DependOn: []string{"kaniko-task1"}, Params: map[string]interface{}{
+				"git-url":         "git://gitee.com/linclin/go-gin-rest-api.git",
+				"git-username":    "lc13579443@qq.com",
+				"git-password":    "xxxxxxx",
+				"git-branch":      "develop",
+				"image":           "registry.cn-shenzhen.aliyuncs.com/dev-ops/go-gin-rest-api",
+				"version":         "1.0.0",
+				"registry-secret": "acr-regcred",
+				"cluster":         "rke2",
+				"namespace":       "default",
+			}, TimeoutSecs: 120},
 		},
 	}
 	oldDag, err := mod.GetStore().GetDag(dag.ID)
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		if err := mod.GetStore().CreateDag(dag); err != nil {
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err := mod.GetStore().CreateDag(dag); err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
-	} else {
-		return err
 	}
 	if oldDag != nil {
 		if err := mod.GetStore().UpdateDag(dag); err != nil {
@@ -102,13 +63,6 @@ func ensureDagCreated() error {
 }
 
 func main() {
-	// init action
-	fastflow.RegisterAction([]run.Action{
-		&ActionA{code: "A"},
-		&ActionA{code: "B"},
-		&ActionA{code: "C"},
-		&ActionA{code: "D"},
-	})
 	// init keeper
 	keeper := mysqlKeeper.NewKeeper(&mysqlKeeper.KeeperOption{
 		Key:     "worker-1",
@@ -154,7 +108,7 @@ func main() {
 func runInstance() {
 	// wait init completed
 	time.Sleep(2 * time.Second)
-	dag, err := mod.GetStore().GetDag("test-dag")
+	dag, err := mod.GetStore().GetDag("ci-kaniko")
 	if err != nil {
 		panic(err)
 	}
