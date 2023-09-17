@@ -49,7 +49,7 @@ func ensureDagCreated() error {
 				"git-url":    "git@gitee.com:linclin/go-gin-rest-api.git",
 				"git-key":    "id_rsa",
 				"git-branch": "develop",
-			}, TimeoutSecs: 120},
+			}, TimeoutSecs: 600},
 			{ID: "task4", ActionName: "buildkit", DependOn: []string{"task3"}, Params: map[string]interface{}{
 				"git-url":         "git@gitee.com:linclin/go-gin-rest-api.git",
 				"image":           "registry.cn-shenzhen.aliyuncs.com/dev-ops/go-gin-rest-api",
@@ -57,7 +57,7 @@ func ensureDagCreated() error {
 				"registry-secret": "acr-regcred",
 				"cluster":         "rke2",
 				"namespace":       "default",
-			}, TimeoutSecs: 120},
+			}, TimeoutSecs: 600},
 		},
 	}
 	oldDag, err := mod.GetStore().GetDag(dag.ID)

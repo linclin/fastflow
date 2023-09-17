@@ -41,7 +41,7 @@ func ensureDagCreated() error {
 				"registry-secret": "acr-regcred",
 				"cluster":         "rke2",
 				"namespace":       "default",
-			}, TimeoutSecs: 120},
+			}, TimeoutSecs: 600},
 		},
 	}
 	oldDag, err := mod.GetStore().GetDag(dag.ID)
